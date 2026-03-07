@@ -1,29 +1,26 @@
-import { Document, Types } from 'mongoose';
-
 // ─── User Roles ──────────────────────────────────────────────
 export type UserRole = 'student' | 'parent' | 'warden' | 'admin';
 
 // ─── User ────────────────────────────────────────────────────
-export interface IUser extends Document {
-    _id: Types.ObjectId;
+export interface IUser {
+    id: string;
     name: string;
     email: string;
     phone: string;
-    password: string;
+    password?: string;
     role: UserRole;
-    isVerified: boolean;
+    is_verified: boolean;
     avatar: string;
-    rollNumber?: string;
-    roomNumber?: string;
+    roll_number?: string;
+    room_number?: string;
     block?: string;
-    parentId?: Types.ObjectId;
-    wardenId?: Types.ObjectId;
-    studentIds?: Types.ObjectId[];
-    assignedBlock?: string;
-    refreshToken?: string;
-    createdAt: Date;
-    updatedAt: Date;
-    comparePassword(candidatePassword: string): Promise<boolean>;
+    parent_id?: string;
+    warden_id?: string;
+    student_ids?: string[];
+    assigned_block?: string;
+    refresh_token?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 // ─── Outing Status ──────────────────────────────────────────
@@ -38,31 +35,33 @@ export type OutingStatus =
 
 export interface ITimelineEntry {
     status: string;
-    changedBy: Types.ObjectId;
-    changedAt: Date;
+    changed_by: string;
+    changed_at: string;
     comment: string;
 }
 
-export interface IOutingRequest extends Document {
-    _id: Types.ObjectId;
-    studentId: Types.ObjectId;
-    parentId?: Types.ObjectId;
-    wardenId?: Types.ObjectId;
-    date: Date;
-    timeFrom: string;
-    timeTo: string;
+export interface IOutingRequest {
+    id: string;
+    student_id: string;
+    parent_id?: string;
+    warden_id?: string;
+    date: string;
+    time_from: string;
+    time_to: string;
     purpose: string;
     destination: string;
-    emergencyContact?: string;
+    emergency_contact?: string;
     status: OutingStatus;
-    parentComment: string;
-    wardenComment: string;
-    parentActionAt?: Date;
-    wardenActionAt?: Date;
-    passCode?: string;
+    parent_comment: string;
+    warden_comment: string;
+    parent_action_at?: string;
+    warden_action_at?: string;
+    pass_code?: string;
     timeline: ITimelineEntry[];
-    createdAt: Date;
-    updatedAt: Date;
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    student?: Partial<IUser>;
 }
 
 // ─── Complaint ──────────────────────────────────────────────
@@ -77,28 +76,31 @@ export type ComplaintCategory =
 
 export interface IComplaintTimeline {
     status: string;
-    updatedBy: Types.ObjectId;
-    updatedAt: Date;
+    updated_by: string;
+    updated_at: string;
     comment: string;
 }
 
-export interface IComplaint extends Document {
-    _id: Types.ObjectId;
-    studentId: Types.ObjectId;
+export interface IComplaint {
+    id: string;
+    student_id: string;
     category: ComplaintCategory;
     title: string;
     description: string;
-    roomNumber: string;
+    room_number: string;
     block: string;
     images: string[];
     status: ComplaintStatus;
     priority: 'low' | 'medium' | 'high';
-    assignedTo?: string;
-    assignedBy?: Types.ObjectId;
-    resolvedAt?: Date;
+    assigned_to?: string;
+    assigned_by?: string;
+    resolved_at?: string;
     timeline: IComplaintTimeline[];
-    createdAt: Date;
-    updatedAt: Date;
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    student?: Partial<IUser>;
+    assigner?: Partial<IUser>;
 }
 
 // ─── Food Menu ──────────────────────────────────────────────
@@ -112,28 +114,28 @@ export interface IDayMenu {
     meals: IMealItem[];
 }
 
-export interface IFoodMenu extends Document {
-    _id: Types.ObjectId;
-    weekStartDate: Date;
+export interface IFoodMenu {
+    id: string;
+    week_start_date: string;
     days: IDayMenu[];
-    isActive: boolean;
-    createdBy: Types.ObjectId;
-    createdAt: Date;
-    updatedAt: Date;
+    is_active: boolean;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
 }
 
 // ─── Notification ───────────────────────────────────────────
-export interface INotification extends Document {
-    _id: Types.ObjectId;
-    userId: Types.ObjectId;
+export interface INotification {
+    id: string;
+    user_id: string;
     title: string;
     message: string;
     type: string;
-    isRead: boolean;
-    relatedId?: Types.ObjectId;
-    relatedModel?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    is_read: boolean;
+    related_id?: string;
+    related_model?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 // ─── Express Augmentation ───────────────────────────────────

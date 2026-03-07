@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/User';
+import UserModel from '../models/User';
 import { ApiError } from '../utils/ApiError';
 import { config } from '../config/env';
 
@@ -18,7 +18,7 @@ const auth = async (req: Request, _res: Response, next: NextFunction): Promise<v
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
 
-        const user = await User.findById(decoded.id);
+        const user = await UserModel.findById(decoded.id);
         if (!user) {
             throw ApiError.unauthorized('User not found');
         }

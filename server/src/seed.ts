@@ -1,6 +1,19 @@
-import mongoose from 'mongoose';
-import { config } from './config/env';
-import User from './models/User';
+import bcrypt from 'bcryptjs';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Missing SUPABASE_URL or SUPABASE_KEY in .env');
+    process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const testUsers = [
     {
@@ -9,8 +22,8 @@ const testUsers = [
         phone: '9876500000',
         password: 'Abcd@99881',
         role: 'student',
-        rollNumber: '2501003106',
-        roomNumber: '101',
+        roll_number: '2501003106',
+        room_number: '101',
         block: 'A',
     },
     {
@@ -19,8 +32,8 @@ const testUsers = [
         phone: '9876543210',
         password: 'password123',
         role: 'student',
-        rollNumber: '2026001',
-        roomNumber: '201',
+        roll_number: '2026001',
+        room_number: '201',
         block: 'A',
     },
     {
@@ -29,7 +42,7 @@ const testUsers = [
         phone: '9876543211',
         password: 'password123',
         role: 'parent',
-        rollNumber: 'PARENT001',
+        roll_number: 'PARENT001',
     },
     {
         name: 'Dr. Vikram Singh',
@@ -37,8 +50,8 @@ const testUsers = [
         phone: '9876543212',
         password: 'password123',
         role: 'warden',
-        rollNumber: 'WARDEN001',
-        assignedBlock: 'A',
+        roll_number: 'WARDEN001',
+        assigned_block: 'A',
     },
     {
         name: 'Admin User',
@@ -46,23 +59,48 @@ const testUsers = [
         phone: '9876543213',
         password: 'password123',
         role: 'admin',
-        rollNumber: 'ADMIN001',
+        roll_number: 'ADMIN001',
     },
 ];
 
 async function seed() {
     try {
-        await mongoose.connect(config.mongoUri);
-        console.log('✅ Connected to MongoDB');
+        console.log('🔌 Connecting to Supabase...');
 
         // Clear existing users
-        await User.deleteMany({});
-        console.log('🗑️  Cleared existing users');
+        const { error: deleteError } = await supabase
+            .from('users')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000');
+        if (deleteError) {
+            console.error('⚠️  Could not clear users (may be empty):', deleteError.message);
+        } else {
+            console.log('🗑️  Cleared existing users');
+        }
 
         // Insert test users
         for (const userData of testUsers) {
-            await User.create(userData);
-            console.log(`👤 Created ${userData.role}: ${userData.name} (${userData.rollNumber})`);
+            const hashedPassword = await bcrypt.hash(userData.password, 12);
+            const { data, error } = await supabase
+                .from('users')
+                .insert({
+                    name: userData.name,
+                    email: userData.email,
+                    phone: userData.phone,
+                    password: hashedPassword,
+                    role: userData.role,
+                    roll_number: userData.roll_number,
+                    room_number: (userData as any).room_number,
+                    block: (userData as any).block,
+                    assigned_block: (userData as any).assigned_block,
+                })
+                .select()
+                .single();
+            if (error) {
+                console.error(`❌ Failed to create ${userData.role} ${userData.name}: ${error.message}`);
+            } else {
+                console.log(`👤 Created ${userData.role}: ${userData.name} (${userData.roll_number})`);
+            }
         }
 
         console.log('\n🎉 Seed complete! Login credentials:\n');
@@ -77,10 +115,8 @@ async function seed() {
         console.log('└────────────┴──────────────┴──────────────┘');
     } catch (err) {
         console.error('❌ Seed failed:', err);
-    } finally {
-        await mongoose.disconnect();
-        process.exit(0);
     }
+    process.exit(0);
 }
 
 seed();

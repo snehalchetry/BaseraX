@@ -3,7 +3,13 @@ import * as outingService from '../services/outingService';
 
 export const create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const outing = await outingService.createRequest(req.user!._id.toString(), req.body);
+        const data = { ...req.body };
+        // Map camelCase from frontend to snake_case
+        if (data.timeFrom) { data.time_from = data.timeFrom; delete data.timeFrom; }
+        if (data.timeTo) { data.time_to = data.timeTo; delete data.timeTo; }
+        if (data.emergencyContact) { data.emergency_contact = data.emergencyContact; delete data.emergencyContact; }
+
+        const outing = await outingService.createRequest(req.user!.id, data);
         res.status(201).json({ success: true, message: 'Outing request submitted', data: outing });
     } catch (error) { next(error); }
 };
@@ -18,7 +24,7 @@ export const list = async (req: Request, res: Response, next: NextFunction): Pro
 export const parentAction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { action, comment } = req.body;
-        const outing = await outingService.parentAction(req.params.id as string, req.user!._id.toString(), action, comment);
+        const outing = await outingService.parentAction(req.params.id as string, req.user!.id, action, comment);
         res.json({ success: true, message: `Request ${action}d`, data: outing });
     } catch (error) { next(error); }
 };
@@ -26,7 +32,7 @@ export const parentAction = async (req: Request, res: Response, next: NextFuncti
 export const wardenAction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { action, comment } = req.body;
-        const outing = await outingService.wardenAction(req.params.id as string, req.user!._id.toString(), action, comment);
+        const outing = await outingService.wardenAction(req.params.id as string, req.user!.id, action, comment);
         res.json({ success: true, message: `Request ${action}d`, data: outing });
     } catch (error) { next(error); }
 };

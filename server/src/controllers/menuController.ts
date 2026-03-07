@@ -10,7 +10,7 @@ export const getCurrent = async (_req: Request, res: Response, next: NextFunctio
 
 export const createOrUpdate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const menu = await menuService.createOrUpdate(req.body, req.user!._id.toString());
+        const menu = await menuService.createOrUpdate(req.body, req.user!.id);
         res.status(201).json({ success: true, message: 'Menu saved', data: menu });
     } catch (error) { next(error); }
 };

@@ -1,15 +1,10 @@
-import mongoose from 'mongoose';
+import { createClient } from '@supabase/supabase-js';
 import { config } from './env';
-import logger from '../utils/logger';
 
-const connectDB = async (): Promise<void> => {
-    try {
-        await mongoose.connect(config.mongoUri);
-        logger.info('✅ MongoDB connected successfully');
-    } catch (error) {
-        logger.error('❌ MongoDB connection error:', error);
-        process.exit(1);
-    }
-};
+if (!config.supabaseUrl || !config.supabaseKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_KEY environment variables are required');
+}
 
-export default connectDB;
+const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+
+export default supabase;

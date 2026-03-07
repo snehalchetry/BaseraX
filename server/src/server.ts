@@ -1,5 +1,4 @@
 import app from './app';
-import connectDB from './config/db';
 import { config } from './config/env';
 import logger from './utils/logger';
 import fs from 'fs';
@@ -14,11 +13,9 @@ dirs.forEach((dir) => {
     }
 });
 
-// Start server
+// Start server (no DB connection step needed — Supabase client is stateless)
 const startServer = async (): Promise<void> => {
     try {
-        await connectDB();
-
         app.listen(config.port, () => {
             logger.info(`🚀 Hostel ERP Server running on port ${config.port}`);
             logger.info(`📡 API: http://localhost:${config.port}/api`);

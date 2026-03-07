@@ -1,5 +1,5 @@
-import Complaint from '../models/Complaint';
-import Notification from '../models/Notification';
+import ComplaintModel from '../models/Complaint';
+import NotificationModel from '../models/Notification';
 import { ApiError } from '../utils/ApiError';
 import { IUser, IComplaint } from '../types';
 
@@ -11,10 +11,10 @@ interface PaginatedResult {
 }
 
 export const createComplaint = async (studentId: string, data: Partial<IComplaint>): Promise<IComplaint> => {
-    const complaint = await Complaint.create({
+    const complaint = await ComplaintModel.create({
         ...data,
-        studentId,
-        timeline: [{ status: 'open', updatedBy: studentId, comment: 'Complaint filed' }],
+        student_id: studentId,
+        timeline: [{ status: 'open', updated_by: studentId, updated_at: new Date().toISOString(), comment: 'Complaint filed' }],
     });
     return complaint;
 };
@@ -23,62 +23,69 @@ export const listComplaints = async (user: IUser, query: Record<string, string> 
     const filter: Record<string, unknown> = {};
     const { status, category, page = '1', limit = '20' } = query;
 
-    if (user.role === 'student') filter.studentId = user._id;
+    if (user.role === 'student') filter.student_id = user.id;
     if (status) filter.status = status;
     if (category) filter.category = category;
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
-    const complaints = await Complaint.find(filter)
-        .populate('studentId', 'name rollNumber roomNumber block')
-        .populate('assignedBy', 'name')
-        .sort({ createdAt: -1 })
-        .skip((pageNum - 1) * limitNum)
-        .limit(limitNum);
-
-    const total = await Complaint.countDocuments(filter);
+    const { complaints, total } = await ComplaintModel.findMany({ filter, page: pageNum, limit: limitNum });
     return { complaints, total, page: pageNum, pages: Math.ceil(total / limitNum) };
 };
 
 export const assignComplaint = async (complaintId: string, assignedBy: string, assignedTo: string): Promise<IComplaint> => {
-    const complaint = await Complaint.findById(complaintId);
+    const complaint = await ComplaintModel.findById(complaintId);
     if (!complaint) throw ApiError.notFound('Complaint not found');
 
-    complaint.assignedTo = assignedTo;
-    complaint.assignedBy = assignedBy as any;
-    complaint.status = 'assigned';
-    complaint.timeline.push({ status: 'assigned', updatedBy: assignedBy as any, updatedAt: new Date(), comment: `Assigned to ${assignedTo}` });
+    const timeline = [...(complaint.timeline || []), {
+        status: 'assigned', updated_by: assignedBy, updated_at: new Date().toISOString(), comment: `Assigned to ${assignedTo}`,
+    }];
 
-    await complaint.save();
-
-    await Notification.create({
-        userId: complaint.studentId, title: 'Complaint Assigned',
-        message: `Your complaint has been assigned to ${assignedTo}`,
-        type: 'complaint_update', relatedId: complaint._id, relatedModel: 'Complaint',
+    const updated = await ComplaintModel.updateById(complaintId, {
+        assigned_to: assignedTo,
+        assigned_by: assignedBy,
+        status: 'assigned',
+        timeline,
     });
 
-    return complaint;
+    if (!updated) throw ApiError.notFound('Complaint not found');
+
+    await NotificationModel.create({
+        user_id: complaint.student_id,
+        title: 'Complaint Assigned',
+        message: `Your complaint has been assigned to ${assignedTo}`,
+        type: 'complaint_update',
+        related_id: complaint.id,
+        related_model: 'Complaint',
+    });
+
+    return updated;
 };
 
 export const updateStatus = async (complaintId: string, updatedBy: string, status: string, comment = ''): Promise<IComplaint> => {
-    const complaint = await Complaint.findById(complaintId);
+    const complaint = await ComplaintModel.findById(complaintId);
     if (!complaint) throw ApiError.notFound('Complaint not found');
 
-    complaint.status = status as IComplaint['status'];
-    if (status === 'closed') complaint.resolvedAt = new Date();
-    complaint.timeline.push({
-        status, updatedBy: updatedBy as any, updatedAt: new Date(),
+    const timeline = [...(complaint.timeline || []), {
+        status, updated_by: updatedBy, updated_at: new Date().toISOString(),
         comment: comment || `Status updated to ${status}`,
-    });
+    }];
 
-    await complaint.save();
+    const updates: Partial<IComplaint> = { status: status as IComplaint['status'], timeline };
+    if (status === 'closed') updates.resolved_at = new Date().toISOString();
 
-    await Notification.create({
-        userId: complaint.studentId, title: 'Complaint Updated',
+    const updated = await ComplaintModel.updateById(complaintId, updates);
+    if (!updated) throw ApiError.notFound('Complaint not found');
+
+    await NotificationModel.create({
+        user_id: complaint.student_id,
+        title: 'Complaint Updated',
         message: `Your complaint status: ${status.replace(/_/g, ' ').toUpperCase()}`,
-        type: 'complaint_update', relatedId: complaint._id, relatedModel: 'Complaint',
+        type: 'complaint_update',
+        related_id: complaint.id,
+        related_model: 'Complaint',
     });
 
-    return complaint;
+    return updated;
 };
