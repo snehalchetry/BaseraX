@@ -28,9 +28,10 @@ app.use(helmet({
         },
     },
 }));
+
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? 'https://yourdomain.com'
+        ? process.env.CLIENT_URL || 'https://basera-x.vercel.app'
         : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
     credentials: true,
 }));
@@ -39,12 +40,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Static Files ─────────────────────────────────────────────
+// ─── Static Files (uploads only) ──────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-// Serve React build in production
-const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
-app.use(express.static(clientDistPath));
 
 // ─── Request Logging ──────────────────────────────────────────
 app.use((req, _res, next) => {
@@ -70,9 +67,9 @@ app.get('/api/health', (_req, res) => {
     res.json({ success: true, message: 'Hostel ERP API is running', timestamp: new Date() });
 });
 
-// ─── SPA Fallback (serve React index.html for all non-API routes) ──
-app.use((_req, res) => {
-    res.sendFile(path.resolve(clientDistPath, 'index.html'));
+// ─── 404 for unknown API routes ───────────────────────────────
+app.use('/api/*', (_req, res) => {
+    res.status(404).json({ success: false, message: 'API route not found' });
 });
 
 // ─── Global Error Handler ─────────────────────────────────────
