@@ -68,7 +68,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ─── 404 for unknown API routes ───────────────────────────────
-app.use('/api/*', (_req, res) => {
+app.use('/api/*path', (_req, res) => {
     res.status(404).json({ success: false, message: 'API route not found' });
 });
 
